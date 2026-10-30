@@ -7,54 +7,71 @@ concurrency:
   group: github-ssh-singleton
   cancel-in-progress: false
 
+env:
+  SSH_USER: runner
+  SSH_PASS: my@12345
+
 jobs:
   ssh-session:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 355 # الحد الأقصى المسموح به في GitHub هو 360 دقيقة
-
+    runs-on: ubuntu-latest
+    timeout-minutes: 370
     steps:
+      - name: ⚙️ Configure SSH Server & User Password
+        run: |
+          echo "Setting up SSH server and user password..."
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          
+          # تعيين كلمة المرور للمستخدم الافتراضي runner
+          echo "${{ env.SSH_USER }}:${{ env.SSH_PASS }}" | sudo chpasswd
+          
+          # السماح بتسجيل الدخول بكلمة المرور في إعدادات SSH
+          sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          echo "PasswordAuthentication yes" | sudo tee -a /etc/ssh/sshd_config > /dev/null
+          
+          # إعادة تشغيل خدمة SSH
+          sudo systemctl restart ssh
+          echo "✅ SSH server is ready and running."
+
       - name: ⬇️ Install Tailscale
         run: |
           echo "Installing Tailscale..."
           curl -fsSL https://tailscale.com/install.sh | sh
-          echo "✅ Tailscale installed successfully."
 
-      - name: 🔗 Authenticate Tailscale & Enable SSH
+      - name: 🔗 Generate Auth Link & Wait
+        timeout-minutes: 15
         run: |
           echo "=========================================================="
-          echo "⚠️ تنبيه: ابحث في السجلات أدناه عن رابط يبدأ بـ:"
-          echo "https://login.tailscale.com/..."
-          echo "1. انسخ الرابط وافتحه في المتصفح."
-          echo "2. سجل الدخول بنفس حساب Tailscale الخاص بك."
-          echo "3. بعد الموافقة، سيكمل سير العمل تلقائياً."
+          echo "⚠️ ACTION REQUIRED: CHECK THE LOGS BELOW ⚠️"
+          echo "1. Look for a URL starting with https://login.tailscale.com/..."
+          echo "2. Copy and paste it into your browser to authenticate."
+          echo "3. Once approved, this workflow will automatically continue."
           echo "=========================================================="
           
-          # هذا الأمر سيطبع الرابط وينتظر المصادقة (مع مهلة 15 دقيقة)
-          sudo tailscale up --hostname "github-ssh-server" --ssh --timeout=15m
+          # تشغيل Tailscale والانتظار حتى يتم تسجيل الدخول
+          sudo tailscale up --hostname "github-ssh-manual"
           
           echo "✅ Successfully connected to Tailscale!"
-
-      - name: 📋 Print SSH Command & Keep Alive
-        run: |
-          # استخراج عنوان IP الخاص بـ Tailscale
-          TS_IP=$(tailscale ip -4)
           
-          echo "::notice::=========================================================="
-          echo "::notice::✅ الاتصال جاهز! انسخ الأمر التالي والصقه في التيرمنال الخاص بك:"
-          echo "::notice::ssh runner@${TS_IP}"
-          echo "::notice::=========================================================="
-          echo ""
-          echo "SSH COMMAND: ssh runner@${TS_IP}"
-          echo ""
+          # استخراج وتخزين الـ IP الخاص بـ Tailscale وطباعة أمر الاتصال
+          TS_IP=$(tailscale ip -4)
+          echo "=========================================================="
+          echo "🚀 YOU CAN NOW SSH INTO THE SERVER USING THIS COMMAND:"
+          echo "ssh ${{ env.SSH_USER }}@$TS_IP"
+          echo "Password: ${{ env.SSH_PASS }}"
+          echo "=========================================================="
 
-          # إبقاء الجلسة نشطة لمدة 350 دقيقة (لضمان عدم تجاوز الحد الأقصى)
-          RUNTIME_MINUTES=350
-          END_TIME=$(( $(date +%s) + RUNTIME_MINUTES * 60 ))
-
-          while [ $(date +%s) -lt $END_TIME ]; do
-            REMAINING=$(( (END_TIME - $(date +%s)) / 60 ))
-            echo "Alive... (${REMAINING} minutes remaining) | ssh runner@${TS_IP}"
-            sleep 300 # الانتظار 5 دقائق قبل الطباعة مرة أخرى
+      - name: ⏳ Keep Alive (355 Minutes)
+        run: |
+          RUNTIME=355
+          END=$((SECONDS + RUNTIME * 60))
+          echo "SSH is now accessible via Tailscale IP."
+          echo "Session active for $RUNTIME minutes..."
+          
+          while [ $SECONDS -lt $END ]; do
+            LEFT=$(( (END - SECONDS) / 60 ))
+            echo "Alive... ($LEFT minutes remaining)"
+            sleep 60
           done
-
-          echo "⏰ Time limit reached. Shutting down."
+          echo "Time limit reached. Shutting down."
