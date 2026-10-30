@@ -1,4 +1,4 @@
-name: Linux SSH (Manual Tailscale Login)
+name: Linux SSH (Fast Tailscale Login)
 
 on:
   workflow_dispatch:
@@ -12,30 +12,23 @@ jobs:
     timeout-minutes: 370
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: ⚙️ Configure SSH Server & User Password
+      - name: ⚙️ Quick SSH Setup
         run: |
-          echo "Setting up SSH server and user password..."
-          sudo apt-get update
-          sudo apt-get install -y openssh-server
-          
-          # تعيين كلمة المرور للمستخدم الافتراضي runner
+          # ضبط كلمة المرور مباشرة للمستخدم runner بدون تحديث النظام كامل
           echo "runner:my@12345" | sudo chpasswd
           
-          # السماح بتسجيل الدخول بكلمة المرور في إعدادات SSH
-          sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          # تفعيل PasswordAuthentication في SSH
           sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
           echo "PasswordAuthentication yes" | sudo tee -a /etc/ssh/sshd_config > /dev/null
           
-          # إعادة تشغيل خدمة SSH
           sudo systemctl restart ssh
-          echo "✅ SSH server is ready and running."
+          echo "✅ SSH is configured!"
 
       - name: ⬇️ Install Tailscale
         run: |
-          echo "Installing Tailscale..."
-          curl -sSf https://tailscale.com/install.sh | sh
+          curl -fsSL https://tailscale.com/install.sh | sh
 
       - name: 🔗 Generate Auth Link & Wait
         timeout-minutes: 15
@@ -47,12 +40,12 @@ jobs:
           echo "3. Once approved, this workflow will automatically continue."
           echo "=========================================================="
           
-          # تشغيل Tailscale والانتظار حتى يتم تسجيل الدخول
+          # تشغيل Tailscale
           sudo tailscale up --hostname "github-ssh-manual"
           
           echo "✅ Successfully connected to Tailscale!"
           
-          # استخراج وتخزين الـ IP الخاص بـ Tailscale وطباعة أمر الاتصال
+          # استخراج الـ IP وطباعة أمر الاتصال
           TS_IP=$(tailscale ip -4)
           echo "=========================================================="
           echo "🚀 YOU CAN NOW SSH INTO THE SERVER USING THIS COMMAND:"
@@ -64,12 +57,10 @@ jobs:
         run: |
           RUNTIME=355
           END=$((SECONDS + RUNTIME * 60))
-          echo "SSH is now accessible via Tailscale IP."
-          echo "Session active for $RUNTIME minutes..."
+          echo "SSH active for $RUNTIME minutes..."
           
           while [ $SECONDS -lt $END ]; do
             LEFT=$(( (END - SECONDS) / 60 ))
             echo "Alive... ($LEFT minutes remaining)"
             sleep 60
           done
-          echo "Time limit reached. Shutting down."
