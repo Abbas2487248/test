@@ -16,19 +16,15 @@ jobs:
 
       - name: ⚙️ Quick SSH Setup
         run: |
-          # ضبط كلمة المرور مباشرة للمستخدم runner بدون تحديث النظام كامل
           echo "runner:my@12345" | sudo chpasswd
-          
-          # تفعيل PasswordAuthentication في SSH
           sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
           echo "PasswordAuthentication yes" | sudo tee -a /etc/ssh/sshd_config > /dev/null
-          
-          sudo systemctl restart ssh
+          sudo systemctl restart ssh > /dev/null 2>&1
           echo "✅ SSH is configured!"
 
       - name: ⬇️ Install Tailscale
         run: |
-          curl -fsSL https://tailscale.com/install.sh | sh
+          curl -fsSL https://tailscale.com/install.sh | sh > /dev/null 2>&1
 
       - name: 🔗 Generate Auth Link & Wait
         timeout-minutes: 15
@@ -40,7 +36,7 @@ jobs:
           echo "3. Once approved, this workflow will automatically continue."
           echo "=========================================================="
           
-          # تشغيل Tailscale
+          # تشغيل Tailscale (هنا سيتوقف مؤقتاً وينتظر تسجيل الدخول الخاص بك من المتصفح)
           sudo tailscale up --hostname "github-ssh-manual"
           
           echo "✅ Successfully connected to Tailscale!"
