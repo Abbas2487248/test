@@ -9,42 +9,52 @@ concurrency:
 
 jobs:
   ssh-session:
-    runs-on: ubuntu-latest
-    timeout-minutes: 370
+    runs-on: ubuntu-22.04
+    timeout-minutes: 355 # الحد الأقصى المسموح به في GitHub هو 360 دقيقة
 
     steps:
       - name: ⬇️ Install Tailscale
         run: |
+          echo "Installing Tailscale..."
           curl -fsSL https://tailscale.com/install.sh | sh
+          echo "✅ Tailscale installed successfully."
 
       - name: 🔗 Authenticate Tailscale & Enable SSH
-        # هذا الأمر سيطبع رابط المصادقة في السجلات وينتظر حتى تسجل الدخول
         run: |
-          sudo tailscale up --hostname "github-ssh-server" --ssh
-          echo "✅ Tailscale connected and SSH enabled."
+          echo "=========================================================="
+          echo "⚠️ تنبيه: ابحث في السجلات أدناه عن رابط يبدأ بـ:"
+          echo "https://login.tailscale.com/..."
+          echo "1. انسخ الرابط وافتحه في المتصفح."
+          echo "2. سجل الدخول بنفس حساب Tailscale الخاص بك."
+          echo "3. بعد الموافقة، سيكمل سير العمل تلقائياً."
+          echo "=========================================================="
+          
+          # هذا الأمر سيطبع الرابط وينتظر المصادقة (مع مهلة 15 دقيقة)
+          sudo tailscale up --hostname "github-ssh-server" --ssh --timeout=15m
+          
+          echo "✅ Successfully connected to Tailscale!"
 
       - name: 📋 Print SSH Command & Keep Alive
         run: |
           # استخراج عنوان IP الخاص بـ Tailscale
           TS_IP=$(tailscale ip -4)
           
-          # طباعة الأمر بشكل واضح جداً في السجلات
           echo "::notice::=========================================================="
-          echo "::notice::✅ اتصل بالسيرفر من التيرمنال الخاص بك باستخدام الأمر التالي:"
+          echo "::notice::✅ الاتصال جاهز! انسخ الأمر التالي والصقه في التيرمنال الخاص بك:"
           echo "::notice::ssh runner@${TS_IP}"
           echo "::notice::=========================================================="
           echo ""
           echo "SSH COMMAND: ssh runner@${TS_IP}"
           echo ""
 
-          # إبقاء الجلسة نشطة لمدة 355 دقيقة (مع طباعة الأمر كل فترة للتذكير)
-          RUNTIME_MINUTES=355
+          # إبقاء الجلسة نشطة لمدة 350 دقيقة (لضمان عدم تجاوز الحد الأقصى)
+          RUNTIME_MINUTES=350
           END_TIME=$(( $(date +%s) + RUNTIME_MINUTES * 60 ))
 
           while [ $(date +%s) -lt $END_TIME ]; do
             REMAINING=$(( (END_TIME - $(date +%s)) / 60 ))
             echo "Alive... (${REMAINING} minutes remaining) | ssh runner@${TS_IP}"
-            sleep 300   # الانتظار 5 دقائق قبل الطباعة مرة أخرى
+            sleep 300 # الانتظار 5 دقائق قبل الطباعة مرة أخرى
           done
 
           echo "⏰ Time limit reached. Shutting down."
