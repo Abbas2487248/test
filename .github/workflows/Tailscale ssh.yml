@@ -3,19 +3,17 @@ name: Linux SSH (Manual Tailscale Login)
 on:
   workflow_dispatch:
 
-concurrency:
-  group: github-ssh-singleton
-  cancel-in-progress: false
-
-env:
-  SSH_USER: runner
-  SSH_PASS: my@12345
+permissions:
+  contents: read
 
 jobs:
   ssh-session:
     runs-on: ubuntu-latest
     timeout-minutes: 370
+    
     steps:
+      - uses: actions/checkout@v3
+
       - name: ⚙️ Configure SSH Server & User Password
         run: |
           echo "Setting up SSH server and user password..."
@@ -23,7 +21,7 @@ jobs:
           sudo apt-get install -y openssh-server
           
           # تعيين كلمة المرور للمستخدم الافتراضي runner
-          echo "${{ env.SSH_USER }}:${{ env.SSH_PASS }}" | sudo chpasswd
+          echo "runner:my@12345" | sudo chpasswd
           
           # السماح بتسجيل الدخول بكلمة المرور في إعدادات SSH
           sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
@@ -37,7 +35,7 @@ jobs:
       - name: ⬇️ Install Tailscale
         run: |
           echo "Installing Tailscale..."
-          curl -fsSL https://tailscale.com/install.sh | sh
+          curl -sSf https://tailscale.com/install.sh | sh
 
       - name: 🔗 Generate Auth Link & Wait
         timeout-minutes: 15
@@ -58,8 +56,8 @@ jobs:
           TS_IP=$(tailscale ip -4)
           echo "=========================================================="
           echo "🚀 YOU CAN NOW SSH INTO THE SERVER USING THIS COMMAND:"
-          echo "ssh ${{ env.SSH_USER }}@$TS_IP"
-          echo "Password: ${{ env.SSH_PASS }}"
+          echo "ssh runner@$TS_IP"
+          echo "Password: my@12345"
           echo "=========================================================="
 
       - name: ⏳ Keep Alive (355 Minutes)
