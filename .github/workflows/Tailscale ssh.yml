@@ -1,0 +1,50 @@
+name: Linux SSH (Manual Tailscale Login)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: github-ssh-singleton
+  cancel-in-progress: false
+
+jobs:
+  ssh-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 370
+
+    steps:
+      - name: ⬇️ Install Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: 🔗 Authenticate Tailscale & Enable SSH
+        # هذا الأمر سيطبع رابط المصادقة في السجلات وينتظر حتى تسجل الدخول
+        run: |
+          sudo tailscale up --hostname "github-ssh-server" --ssh
+          echo "✅ Tailscale connected and SSH enabled."
+
+      - name: 📋 Print SSH Command & Keep Alive
+        run: |
+          # استخراج عنوان IP الخاص بـ Tailscale
+          TS_IP=$(tailscale ip -4)
+          
+          # طباعة الأمر بشكل واضح جداً في السجلات
+          echo "::notice::=========================================================="
+          echo "::notice::✅ اتصل بالسيرفر من التيرمنال الخاص بك باستخدام الأمر التالي:"
+          echo "::notice::ssh runner@${TS_IP}"
+          echo "::notice::=========================================================="
+          echo ""
+          echo "SSH COMMAND: ssh runner@${TS_IP}"
+          echo ""
+
+          # إبقاء الجلسة نشطة لمدة 355 دقيقة (مع طباعة الأمر كل فترة للتذكير)
+          RUNTIME_MINUTES=355
+          END_TIME=$(( $(date +%s) + RUNTIME_MINUTES * 60 ))
+
+          while [ $(date +%s) -lt $END_TIME ]; do
+            REMAINING=$(( (END_TIME - $(date +%s)) / 60 ))
+            echo "Alive... (${REMAINING} minutes remaining) | ssh runner@${TS_IP}"
+            sleep 300   # الانتظار 5 دقائق قبل الطباعة مرة أخرى
+          done
+
+          echo "⏰ Time limit reached. Shutting down."
