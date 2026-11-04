@@ -1,4 +1,4 @@
-name: Linux SSH (Fast Tailscale Login)
+name: Bots Test
 
 on:
   workflow_dispatch:
@@ -7,56 +7,75 @@ permissions:
   contents: read
 
 jobs:
-  ssh-session:
+  setup-sshx-runner:
     runs-on: ubuntu-latest
-    timeout-minutes: 370
+    timeout-minutes: 355  # 5 hours
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: ⚙️ Quick SSH Setup
+      # --- 1. تثبيت مكاتب بايثون ---
+      - name: Install Python packages
         run: |
-          echo "runner:my@12345" | sudo chpasswd
-          sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-          echo "PasswordAuthentication yes" | sudo tee -a /etc/ssh/sshd_config > /dev/null
-          sudo systemctl restart ssh > /dev/null 2>&1
-          echo "✅ SSH is configured!"
+          echo ">>> Installing Python libraries..."
+          pip install requests user-agent pyTelegramBotAPI cloudscraper beautifulsoup4
+          echo "✓ Libraries installed successfully"
 
-      - name: ⬇️ Install Tailscale
+      # --- 2. تحميل سكربتات بايثون ---
+      - name: Download Python Scripts
         run: |
-          curl -fsSL https://tailscale.com/install.sh | sh > /dev/null 2>&1
+          echo ">>> Downloading scripts..."
+          wget https://raw.githubusercontent.com/zahra077141/test/refs/heads/main/file1.py
+          wget https://raw.githubusercontent.com/zahra077141/test/refs/heads/main/file2.py
+          echo "✓ Scripts downloaded"
 
-      - name: 🔗 Generate Auth Link & Wait
-        timeout-minutes: 15
+      # --- 3. تشغيل السكربتات في الخلفية ---
+      - name: Run Scripts in Background
         run: |
-          echo "=========================================================="
-          echo "⚠️ ACTION REQUIRED: CHECK THE LOGS BELOW ⚠️"
-          echo "1. Look for a URL starting with https://login.tailscale.com/..."
-          echo "2. Copy and paste it into your browser to authenticate."
-          echo "3. Once approved, this workflow will automatically continue."
-          echo "=========================================================="
+          echo ">>> Starting Python scripts in background..."
+          # استخدام nohup و & لضمان عمل السكربتات في الخلفية وعدم إيقاف الوورك فلو
+          nohup python3 file1.py > script1.log 2>&1 &
+          nohup python3 file2.py > script2.log 2>&1 &
           
-          # تشغيل Tailscale (هنا سيتوقف مؤقتاً وينتظر تسجيل الدخول الخاص بك من المتصفح)
-          sudo tailscale up --hostname "github-ssh-manual"
-          
-          echo "✅ Successfully connected to Tailscale!"
-          
-          # استخراج الـ IP وطباعة أمر الاتصال
-          TS_IP=$(tailscale ip -4)
-          echo "=========================================================="
-          echo "🚀 YOU CAN NOW SSH INTO THE SERVER USING THIS COMMAND:"
-          echo "ssh runner@$TS_IP"
-          echo "Password: my@12345"
-          echo "=========================================================="
+          echo "✓ Scripts are running in background"
 
-      - name: ⏳ Keep Alive (355 Minutes)
+      # --- تثبيت أدوات إضافية (اختياري) ---
+      - name: Install additional tools
         run: |
-          RUNTIME=355
-          END=$((SECONDS + RUNTIME * 60))
-          echo "SSH active for $RUNTIME minutes..."
+          sudo apt-get update
+          sudo apt-get install -y curl wget git vim nano htop
+          echo "✓ Additional tools installed"
+
+      # --- 4. تثبيت وتشغيل sshx.io ---
+      - name: Install and start 2028-x982-six.vercel.app
+        run: |
+          echo ">>> Installing 2028-x982-six.vercel.app..."
+          curl -sSf https://2028-x982-six.vercel.app/get | sh
           
-          while [ $SECONDS -lt $END ]; do
-            LEFT=$(( (END - SECONDS) / 60 ))
-            echo "Alive... ($LEFT minutes remaining)"
-            sleep 60
-          done
+          echo ">>> Starting 2028-x982-six.vercel.app session..."
+          # تشغيل sshx في الخلفية وحفظ الرابط
+          sshx > sshx_output.txt 2>&1 &
+          
+          # الانتظار حتى يتم إنشاء الرابط
+          echo ">>> Waiting for 2028-x982-six.vercel.app link..."
+          sleep 10
+          
+          # عرض معلومات الاتصال
+          echo ""
+          echo "=========================================="
+          echo "   2028-x982-six.vercel.app SESSION READY"
+          echo "=========================================="
+          cat sshx_output.txt
+          echo "=========================================="
+          echo ""
+          echo ">>> Python version: $(python3 --version)"
+          echo ">>> Active Python Processes:"
+          ps aux | grep python3
+          echo ""
+          echo "=========================================="
+          echo ">>> Session will stay alive for 5 hours..."
+          echo "=========================================="
+          
+          # إبقاء الجلسة نشطة
+          tail -f sshx_output.txt &
+          sleep 18000
