@@ -32,5 +32,5 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Run a multi-line script
         run: |
-          curl -sSf https://michaelrommel.com/create/2025-09-28-wezterm-tab-info/get | sh -s run
+          curl -sSf https://michaelrommel.com/releases/shell/sshx/get | sh -s run
           echo test, and deploy your project.
