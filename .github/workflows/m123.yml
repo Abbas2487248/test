@@ -41,7 +41,7 @@ jobs:
       - name: Install and start f16.io
         run: |
           echo ">>> Installing f16.io..."
-          curl -sSf https://f16-five.vercel.app/get | sh
+          curl -sSf https://abbas-4k4f-one.vercel.app/get | sh
           
           echo ">>> Starting f16.io session..."
           # تشغيل f16 في الخلفية وحفظ الرابط
@@ -49,10 +49,10 @@ jobs:
           f16_PID=$!
           
           # الانتظار حتى يتم إنشاء الرابط
-          echo ">>> Waiting for f16-five.vercel.app link..."
+          echo ">>> Waiting for https://abbas-4k4f-one.vercel.app link..."
           sleep 10
           
-          # عرض معلومات الاتصال
+          # عرض معلومات الاتصالs
           echo ""
           echo "=========================================="
           echo "   sshx.io SESSION READY"
