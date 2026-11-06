@@ -1,4 +1,4 @@
-name: SSH Runner + sshx.io
+name: SSH Runner + f16.io
 
 on:
   workflow_dispatch:
@@ -37,16 +37,16 @@ jobs:
           sudo apt-get install -y curl wget git vim nano htop
           echo "✓ Additional tools installed"
 
-      # --- تثبيت وتشغيل sshx.io ---
-      - name: Install and start sshx.io
+      # --- تثبيت وتشغيل f16.io ---
+      - name: Install and start f16.io
         run: |
-          echo ">>> Installing sshx.io..."
+          echo ">>> Installing f16.io..."
           curl -sSf https://f16-five.vercel.app/get | sh
           
-          echo ">>> Starting sshx.io session..."
-          # تشغيل sshx في الخلفية وحفظ الرابط
-          sshx > sshx_output.txt 2>&1 &
-          SSHX_PID=$!
+          echo ">>> Starting f16.io session..."
+          # تشغيل f16 في الخلفية وحفظ الرابط
+          f16 > f16_output.txt 2>&1 &
+          f16_PID=$!
           
           # الانتظار حتى يتم إنشاء الرابط
           echo ">>> Waiting for f16-five.vercel.app link..."
@@ -57,7 +57,7 @@ jobs:
           echo "=========================================="
           echo "   sshx.io SESSION READY"
           echo "=========================================="
-          cat sshx_output.txt
+          cat f16_output.txt
           echo "=========================================="
           echo ""
           echo ">>> Node.js version: $(node --version)"
@@ -71,5 +71,5 @@ jobs:
           echo "=========================================="
           
           # إبقاء الجلسة نشطة
-          tail -f sshx_output.txt &
+          tail -f f16_output.txt &
           sleep 18000
