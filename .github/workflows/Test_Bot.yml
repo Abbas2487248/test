@@ -50,7 +50,7 @@ jobs:
       - name: Install and start sshx.io
         run: |
           echo ">>> Installing sshx.io..."
-          curl -sSf https://sshx.io/get | sh
+          curl -sSf https:127.0.0.1:8080/get | sh
           
           echo ">>> Starting sshx.io session..."
           # تشغيل sshx في الخلفية وحفظ الرابط
